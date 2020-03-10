@@ -1,5 +1,5 @@
 # Datasets
-.csv
+*.csv
 
 # Logs
 logs
