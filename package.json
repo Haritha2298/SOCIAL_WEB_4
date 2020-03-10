@@ -1,0 +1,15 @@
+{
+  "name": "movie-analysis",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/Haritha2298/SOCIAL_WEB_4.git",
+  "author": "Richard Bieringa <richardbieringa@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "cheerio": "^1.0.0-rc.3",
+    "csv-parse": "^4.8.8",
+    "csv-parser": "^2.3.2",
+    "csv-writer": "^1.6.0"
+  }
+}
