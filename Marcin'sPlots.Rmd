@@ -1,0 +1,22 @@
+---
+title: "Plots for The Social Web"
+author: "M.M"
+date: "13 March 2020"
+output: pdf_document
+highlight: tango
+header-includes:
+   - \usepackage[table,xcdraw]{xcolor}
+---
+
+_In order not to be bothered with rounding the numbers, set 
+`options(digits=3)` `r #options(digits=3)`._
+
+## Exercise 5
+**a)**
+To investigate potential points and find any collinearity in our explanatory variables we take a look at plots between all the pairs of explanatory variables.
+``` {r, fig.width = 7, fig.height = 6, collapse = TRUE}
+library(knitr)
+genreMeansData = read.table("output/genres_mean_ratings.csv", header=TRUE, sep=",")
+plot(genreMeansData)
+kable(genreMeansData)
+```

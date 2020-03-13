@@ -1,5 +1,7 @@
 # Datasets
 *.csv
+src/data/*
+*.RData
 
 # Logs
 logs
