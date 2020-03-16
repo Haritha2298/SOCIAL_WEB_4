@@ -8,12 +8,8 @@ header-includes:
    - \usepackage[table,xcdraw]{xcolor}
 ---
 
-_In order not to be bothered with rounding the numbers, set 
-`options(digits=3)` `r #options(digits=3)`._
-
-## Exercise 5
-**Data preprocessing**
-First I extract into 11 files named "output/ratings_sortedXXX-YYY.csv" ratings newer than 01.01.2015 00:00. Then I load them into the dataset in R: 
+## Data preprocessing
+First I extract into 11 files named "output/ratings_sortedXXX-YYY.csv" ratings newer than 01.01.2015 00:00 (in jupyter notebook, python). Then I load them into the dataset in R: 
 
 ``` {r}
 rating_scale = c(0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0);
@@ -69,7 +65,8 @@ __preprocess_movie_data_for_sample__ function for given sample of ratings divide
 __preprocess_movie_data__ function for data consisting ratings ordered in time creates a vector of 4 x 20 values. First 20 values describe distribution of ratings in the first half and the second half. Next 3 x 20 values describes distribution of values in the first and second halves for 3 random permutation. These 3 samples are used as a control group. I used 3 samples instead of 1 to avoid unlucky pick. I expect that the median of test results for 3 samples to be >0.05 almost everytime.
 
 __preprocess_file_data__ function for a given fileName reads the data, extracts unique movieIds and then preprocess data from the file. It removes any movie that has less than $50$ ratings from further investigation. As an output it produces matrix of size numberOfMovies x 81. Each row represents a movie that has at least >50 ratings. First column is movieId, then 4 x 20 preprocessed values as described above (4 samples).
-**Data testing**
+
+## Data testing
 For each row we compute 4 times (one time for each sample) chisq_test. This test is most reliable when it comes to measure difference between 2 discrete distributions:
 
 [linked phrase]https://stats.stackexchange.com/questions/298467/are-two-grade-distributions-significantly-different-in-r
@@ -98,7 +95,7 @@ test_data <- function(data) {
 }
 ```
 
-**Data computation and save to file**
+## Data computation and save to file
 
 ``` {r}
 run_tests <- function() {
@@ -123,7 +120,8 @@ run_tests <- function() {
 }
 ```
 
-**Additional Info**
+## Additional Info
+
 To investigate potential points and find any collinearity in our explanatory variables we take a look at plots between all the pairs of explanatory variables.
 ``` {r, fig.width = 7, fig.height = 6, collapse = TRUE}
 library(knitr)
@@ -132,7 +130,8 @@ plot(genreMeansData)
 kable(genreMeansData)
 ```
 
-** Marcin's helping functions **
+## Marcin's helping functions (just some working space)
+
 ``` {r}
 gather_results <- function() {
   res = matrix(-1, 0, 5)
