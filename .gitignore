@@ -2,6 +2,7 @@
 *.csv
 src/data/*
 *.RData
+output/*
 
 # Logs
 logs
