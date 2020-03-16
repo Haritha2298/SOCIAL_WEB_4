@@ -1,8 +1,12 @@
 # Datasets
 *.csv
 src/data/*
+
+# Marcin temp files
 *.RData
-output/*
+*.Rhistory
+Marcintemp.txt
+output/temp/*
 
 # Logs
 logs

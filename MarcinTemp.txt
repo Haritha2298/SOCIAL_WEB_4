@@ -1,0 +1,105 @@
+data = read.table("output/ratings_sorted0-20000__.csv", header=TRUE, sep=",")
+add_mean <- function(data) {
+  sum = 0;
+  data[1,4] = 0;
+  for (i in c(2:nrow(data))) {
+    data[i,4] = sum / (i - 1);
+    sum = sum + data[i,2];
+  }
+  data
+}
+
+check_correlation <- function(data) {
+  cor.test(data[(nrow(data) / 2 + 1):nrow(data), 2], data[(nrow(data) / 2 + 1):nrow(data), 4],method="kendall")
+}
+
+check_time_dependency <- function(data) {
+  wilcox.test(data[1:(nrow(data) / 2),2], data[(nrow(data) / 2 + 1):nrow(data),2])
+}
+
+check_random_dependency <- function(data) {
+  random_indices = sample(1:nrow(data), nrow(data) / 2);
+  t1 = wilcox.test(data[random_indices,2], data[-random_indices,2])$p.value;
+  random_indices = sample(1:nrow(data), nrow(data) / 2);
+  t2 = wilcox.test(data[random_indices,2], data[-random_indices,2])$p.value;
+  random_indices = sample(1:nrow(data), nrow(data) / 2);
+  t3 = wilcox.test(data[random_indices,2], data[-random_indices,2])$p.value;
+  random_indices = sample(1:nrow(data), nrow(data) / 2);
+  t4 = wilcox.test(data[random_indices,2], data[-random_indices,2])$p.value;
+  random_indices = sample(1:nrow(data), nrow(data) / 2);
+  t5 = wilcox.test(data[random_indices,2], data[-random_indices,2])$p.value;
+  sort(c(t1,t2,t3,t4,t5))
+}
+
+rating_scale = c(0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0);
+sum_ratings <- function(data) {
+  result_sum_ratings = c();
+  for (i in rating_scale) {
+    result_sum_ratings[i * 2] = length(data[data == i]);
+  }
+  result_sum_ratings
+}
+
+preprocess_movie_data_for_sample <- function(data) {
+  c(sum_ratings(data[1:(length(data) / 2)]), sum_ratings(data[(length(data) / 2 + 1): length(data)]))
+}
+
+preprocess_movie_data <- function(data) {
+  random_indices = sample(1:nrow(data), nrow(data) / 2);
+  preprocess_sample_1 <- c(data[random_indices,2], data[-random_indices,2]);
+  random_indices = sample(1:nrow(data), nrow(data) / 2);
+  preprocess_sample_2 <- c(data[random_indices,2], data[-random_indices,2]);
+  random_indices = sample(1:nrow(data), nrow(data) / 2);
+  preprocess_sample_3 <- c(data[random_indices,2], data[-random_indices,2]);
+  c(preprocess_movie_data_for_sample(data[,2]), preprocess_movie_data_for_sample(preprocess_sample_1), preprocess_movie_data_for_sample(preprocess_sample_2), preprocess_movie_data_for_sample(preprocess_sample_3))
+}
+
+chiTest <- function(data, offset) {
+  x <- as.table(matrix(data[(offset+1):(offset+20)], nrow=2, byrow=TRUE));
+  pvalue(chisq_test(x, scores=list("Var2" = c(1,2,3,4,5,6,7,8,9,10))))
+}
+
+movieIds = unique(data[,1])
+res=matrix(-1,length(movieIds),8);
+counter = 1;
+for (i in movieIds) {
+  temp = subset(data,data['movieId'] == i)
+  if (nrow(temp) < 50) {
+    next
+  }
+  res[counter,] = c(i, nrow(temp), check_time_dependency(temp)$p.value, check_random_dependency(temp))
+  counter = counter + 1
+  if (counter %% 100 == 0) {
+    print(counter)
+  }
+}
+print(res)
+
+movieIds = unique(data[,1])
+res2 = matrix(-1,length(movieIds),81);
+counter = 1;
+for (i in movieIds) {
+  temp = subset(data,data['movieId'] == i)
+  if (nrow(temp) < 50) {
+    next
+  }
+  res2[counter,] = c(i, preprocess_movie_data(temp));
+  counter = counter + 1
+  if (counter %% 100 == 0) {
+    print(counter)
+  }
+}
+res2 = subset(res2, res2[,1] != -1)
+
+library(survival)
+library(coin)
+ress2 = matrix(-1, length(movieIds), 5);
+for (i in (1:nrow(res2))) {
+  ress2[i,] = c(res2[i,1], chiTest(res2[i,], 1), chiTest(res2[i,], 21), chiTest(res2[i,], 41), chiTest(res2[i,], 61));
+  if (i %% 100 == 0) {
+    print(i)
+  }
+}
+ress2 = subset(ress2, ress2[,1] != -1)
+
+subset(ress2, (ress2[,3] < 0.05 & ress2[,5] < 0.05) | (ress2[,4] < 0.05 & ress2[,5] < 0.05) | (ress2[,3] < 0.05 & ress2[,4] < 0.05))
