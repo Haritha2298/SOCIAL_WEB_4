@@ -74,13 +74,13 @@ For each row we compute 4 times (one time for each sample) chisq_test. This test
 [linked phrase]https://rcompanion.org/handbook/H_09.html?fbclid=IwAR0YsHHx7ORNq2qlIrefuW-zRsQgHvjpnXKb6u4qTLLRFeg3ab3RTufWNSQ
 
 ``` {r}
+library(survival)
+library(coin)
 chiTest <- function(data, offset) {
   x <- as.table(matrix(data[(offset+1):(offset+20)], nrow=2, byrow=TRUE));
   pvalue(chisq_test(x, scores=list("Var2" = c(1,2,3,4,5,6,7,8,9,10))))
 }
 
-library(survival)
-library(coin)
 test_data <- function(data) {
   movieIds = unique(data[,1]);
   test_results = matrix(-1, length(movieIds), 5);
@@ -146,7 +146,134 @@ gather_results <- function() {
     small_res = read.table(inputFilename, header=TRUE, sep=",");
     res = rbind(res, small_res[,2:6]);
   }
+  names(res) <- c('movieId', 
+                  'pvalue (ordered sample)', 
+                  'pvalue (random sample1)', 
+                  'pvalue (random sample2)', 
+                  'pvalue (random sample3)')
   write.csv(res, "output/ChiTestMovieLens.csv", row.names=FALSE)
+  res
+}
+
+rating_scale = c(0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0);
+sum_ratings <- function(data) {
+  result_sum_ratings = c();
+  for (i in rating_scale) {
+    result_sum_ratings[i * 2] = length(data[data == i]);
+  }
+  result_sum_ratings
+}
+
+
+preprocess_movie_data_for_sample <- function(data1, data2) {
+  c(sum_ratings(data1), sum_ratings(data2))
+}
+
+preprocess_movie_data <- function(data, firstYearSize) {
+  random_indices = sample(1:nrow(data), firstYearSize);
+  preprocess_sample_1 <- c(data[random_indices,2], data[-random_indices,2]);
+  random_indices = sample(1:nrow(data), firstYearSize);
+  preprocess_sample_2 <- c(data[random_indices,2], data[-random_indices,2]);
+  random_indices = sample(1:nrow(data), firstYearSize);
+  preprocess_sample_3 <- c(data[random_indices,2], data[-random_indices,2]);
+  c(preprocess_movie_data_for_sample(data[1:firstYearSize,2], data[(firstYearSize + 1):nrow(data),2]), 
+    preprocess_movie_data_for_sample(preprocess_sample_1[1:firstYearSize], 
+                                     preprocess_sample_1[(firstYearSize + 1):length(preprocess_sample_1)]), 
+    preprocess_movie_data_for_sample(preprocess_sample_2[1:firstYearSize], 
+                                     preprocess_sample_2[(firstYearSize + 1):length(preprocess_sample_2)]), 
+    preprocess_movie_data_for_sample(preprocess_sample_3[1:firstYearSize], 
+                                     preprocess_sample_3[(firstYearSize + 1):length(preprocess_sample_3)]))
+}
+
+preprocess_file_data <- function(fileName) {
+  data = read.table(fileName, header=TRUE, sep=",");
+  movieIds = unique(data[,1]);
+  res = matrix(-1,length(movieIds),81);
+  counter = 1;
+  oneYearTime = 31622400;
+  for (i in movieIds) {
+    temp = subset(data,data['movieId'] == i);
+    minTime = min(temp['timestamp']);
+    maxTime = minTime + oneYearTime;
+    temp1 = subset(temp, temp['timestamp'] < maxTime);
+    firstYearSize = nrow(temp1);
+    if (firstYearSize < 20 || nrow(temp) - firstYearSize < 20) {
+      next
+    }
+    res[counter,] = c(i, preprocess_movie_data(temp, firstYearSize));
+    counter = counter + 1;
+  }
+  res = subset(res, res[,1] != -1);
+  res
+}
+
+
+library(survival)
+library(coin)
+chiTest <- function(data, offset) {
+  x <- as.table(matrix(data[(offset+1):(offset+20)], nrow=2, byrow=TRUE));
+  pvalue(chisq_test(x, scores=list("Var2" = c(1,2,3,4,5,6,7,8,9,10))))
+}
+
+test_data <- function(data) {
+  if (nrow(data) < 1) {
+    test_results = matrix(-1, 0, 5)
+  }
+  if (nrow(data) > 0) {
+    movieIds = unique(data[,1]);
+    test_results = matrix(-1, length(movieIds), 5);
+    for (i in (1:nrow(data))) {
+      test_results[i,] = c(data[i,1], 
+                           chiTest(data[i,], 1), 
+                           chiTest(data[i,], 21), 
+                           chiTest(data[i,], 41), 
+                           chiTest(data[i,], 61));
+    }
+    test_results = subset(test_results, test_results[,1] != -1)
+  }
+}
+
+run_tests <- function() {
+  for (i in (1:11)) {
+    namePrefix = "output/ratings_sorted";
+    inputFilename = paste(namePrefix, 
+                          format(((i-1) * 20000), scientific=FALSE), 
+                          "-", 
+                          format(i*20000, scientific=FALSE), 
+                          "__.csv", 
+                          sep="");
+    outputFilename = paste(namePrefix, 
+                           format(((i-1) * 20000), scientific=FALSE), 
+                           "-", 
+                           format((i*20000), scientific=FALSE), 
+                           "__output_one_year.csv", 
+                           sep="");
+    preprocessed_data <- preprocess_file_data(inputFilename);
+    print(preprocessed_data)
+    tested_data <- test_data(preprocessed_data);
+    write.csv(tested_data, outputFilename)
+  }
+}
+
+gather_results <- function() {
+  res = matrix(-1, 0, 5)
+  for (i in (1:10)) {
+    namePrefix = "output/ratings_sorted";
+    inputFilename = paste(namePrefix, 
+                          format(((i-1) * 20000), scientific=FALSE), 
+                          "-", 
+                          format(i*20000, scientific=FALSE), 
+                          "__output_one_year.csv", 
+                          sep="");
+    small_res = read.table(inputFilename, header=TRUE, sep=",");
+    res = rbind(res, small_res[,2:6]);
+  }
+  names(res) <- c('movieId', 
+                  'pvalue (ordered sample)', 
+                  'pvalue (random sample1)', 
+                  'pvalue (random sample2)', 
+                  'pvalue (random sample3)')
+  write.csv(res, "output/ChiTestYearFrameMovieLens.csv", row.names=FALSE)
   res
 }
 ```
