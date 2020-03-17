@@ -273,7 +273,7 @@ gather_results <- function() {
                   'pvalue (random sample1)', 
                   'pvalue (random sample2)', 
                   'pvalue (random sample3)')
-  write.csv(res, "output/ChiTestYearFrameMovieLens.csv", row.names=FALSE)
+  # write.csv(res, "output/ChiTestYearFrameMovieLens.csv", row.names=FALSE)
   res
 }
 ```
